@@ -22,22 +22,27 @@ data received by the microphone straight to a WAV file.
 #define SA struct sockaddr
 int sockfd = 0;
 int counter = 0;
-int16_t bufferI[2205];
-int16_t bufferO[2205];
+int16_t bufferI[4410];
+int16_t bufferO[4410];
+int newBuffer = 0;
 void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
     MA_ASSERT(pDevice->capture.format == pDevice->playback.format);
     MA_ASSERT(pDevice->capture.channels == pDevice->playback.channels);
 
     /* In this example the format and channel count are the same for both input and output which means we can just memcpy(). */
-    memcpy(bufferI, pInput, 2205*2);
-    memcpy(pOutput, bufferO, 2205*2);
+    if(newBuffer == 0)
+    {
+        memcpy(bufferI, pInput, 4410*2);
+        memcpy(pOutput, bufferO, 4410*2);
+        newBuffer = 1;
+    }
 
-    //write(sockfd, pInput, 2205*2);
-    //read(sockfd, pOutput, 2205*2);
+    //write(sockfd, pInput, 4410*2);
+    //read(sockfd, pOutput, 4410*2);
     
     //MA_COPY_MEMORY(pOutput, pInput, frameCount * ma_get_bytes_per_frame(pDevice->capture.format, pDevice->capture.channels));
-    //printf("size: %i   counter: %i\n", frameCount, counter++);
+    printf("size: %i   counter: %i\n", frameCount, counter++);
 }
 
 int main(int argc, char** argv)
@@ -68,7 +73,7 @@ int main(int argc, char** argv)
     deviceConfig.sampleRate       = encoder.config.sampleRate;
     deviceConfig.dataCallback     = data_callback;
     deviceConfig.pUserData        = &encoder;
-    deviceConfig.periodSizeInMilliseconds = 50;
+    deviceConfig.periodSizeInMilliseconds = 100;
 
     int connfd;
 	struct sockaddr_in servaddr, cli;
@@ -113,8 +118,12 @@ int main(int argc, char** argv)
     //getchar();
     while(1)
     {
-        write(sockfd, bufferI, 2205*2);
-        read(sockfd, bufferO, 2205*2);
+        if(newBuffer !=0)
+        {
+            write(sockfd, bufferI, 4410*2);
+            read(sockfd, bufferO, 4410*2);
+            newBuffer = 0;
+        }
     }
     //getchar();
     
