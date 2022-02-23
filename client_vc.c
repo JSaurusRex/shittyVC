@@ -52,17 +52,17 @@ int main(int argc, char** argv)
 
     encoderConfig = ma_encoder_config_init(ma_encoding_format_wav, ma_format_u8, 1, 44100);
 
-    if (ma_encoder_init_file(argv[1], &encoderConfig, &encoder) != MA_SUCCESS) {
-        printf("Failed to initialize output file.\n");
-        return -1;
-    }
+    // if (ma_encoder_init_file(argv[1], &encoderConfig, &encoder) != MA_SUCCESS) {
+    //     printf("Failed to initialize output file.\n");
+    //     return -1;
+    // }
 
     deviceConfig = ma_device_config_init(ma_device_type_duplex);
-    deviceConfig.capture.format   = encoder.config.format;
-    deviceConfig.playback.format   = encoder.config.format;
-    deviceConfig.capture.channels = encoder.config.channels;
-    deviceConfig.playback.channels = encoder.config.channels;
-    deviceConfig.sampleRate       = encoder.config.sampleRate;
+    deviceConfig.capture.format   = ma_format_u8;
+    deviceConfig.playback.format   = ma_format_u8;
+    deviceConfig.capture.channels = 1;
+    deviceConfig.playback.channels = 1;
+    deviceConfig.sampleRate       = 44100;
     deviceConfig.dataCallback     = data_callback;
     deviceConfig.pUserData        = &encoder;
     deviceConfig.periodSizeInMilliseconds = 50;
@@ -82,7 +82,7 @@ int main(int argc, char** argv)
 
 	// assign IP, PORT
 	servaddr.sin_family = AF_INET;
-	servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	servaddr.sin_addr.s_addr = inet_addr(argv[1]);
 	servaddr.sin_port = htons(PORT);
 
 	// connect the client socket to server socket
