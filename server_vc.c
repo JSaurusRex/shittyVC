@@ -12,12 +12,12 @@
 // Function designed for chat between client and server.
 void func(int connfd1, int connfd2)
 {
-	int8_t buff1[MAX];
-	int8_t buff2[MAX];
+	int16_t buff1[MAX];
+	int16_t buff2[MAX];
 	// infinite loop for chat
 	for (;;) {
-		bzero(buff1, MAX);
-		bzero(buff2, MAX);
+		bzero(buff1, sizeof(buff1));
+		bzero(buff2, sizeof(buff1));
 
 		// read the message from client and copy it in buffer
 		read(connfd1, buff1, sizeof(buff1));

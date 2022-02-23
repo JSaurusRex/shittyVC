@@ -22,19 +22,22 @@ data received by the microphone straight to a WAV file.
 #define SA struct sockaddr
 int sockfd = 0;
 int counter = 0;
-int8_t bufferI[2205];
-int8_t bufferO[2205];
+int16_t bufferI[2205];
+int16_t bufferO[2205];
 void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
     MA_ASSERT(pDevice->capture.format == pDevice->playback.format);
     MA_ASSERT(pDevice->capture.channels == pDevice->playback.channels);
 
     /* In this example the format and channel count are the same for both input and output which means we can just memcpy(). */
-    memcpy(bufferI, pInput, frameCount);
-    memcpy(pOutput, bufferO, frameCount);
+    memcpy(bufferI, pInput, 2205*2);
+    memcpy(pOutput, bufferO, 2205*2);
+
+    //write(sockfd, pInput, 2205*2);
+    //read(sockfd, pOutput, 2205*2);
     
     //MA_COPY_MEMORY(pOutput, pInput, frameCount * ma_get_bytes_per_frame(pDevice->capture.format, pDevice->capture.channels));
-    printf("size: %i   counter: %i\n", frameCount, counter++);
+    //printf("size: %i   counter: %i\n", frameCount, counter++);
 }
 
 int main(int argc, char** argv)
@@ -50,19 +53,19 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    encoderConfig = ma_encoder_config_init(ma_encoding_format_wav, ma_format_u8, 1, 44100);
+    encoderConfig = ma_encoder_config_init(ma_encoding_format_wav, ma_format_s16, 1, 44100);
 
-    // if (ma_encoder_init_file(argv[1], &encoderConfig, &encoder) != MA_SUCCESS) {
-    //     printf("Failed to initialize output file.\n");
-    //     return -1;
-    // }
+    if (ma_encoder_init_file("ugh.mp3", &encoderConfig, &encoder) != MA_SUCCESS) {
+        printf("Failed to initialize output file.\n");
+        return -1;
+    }
 
     deviceConfig = ma_device_config_init(ma_device_type_duplex);
-    deviceConfig.capture.format   = ma_format_u8;
-    deviceConfig.playback.format   = ma_format_u8;
-    deviceConfig.capture.channels = 1;
-    deviceConfig.playback.channels = 1;
-    deviceConfig.sampleRate       = 44100;
+    deviceConfig.capture.format   = encoder.config.format;
+    deviceConfig.playback.format   = encoder.config.format;
+    deviceConfig.capture.channels = encoder.config.channels;
+    deviceConfig.playback.channels = encoder.config.channels;
+    deviceConfig.sampleRate       = encoder.config.sampleRate;
     deviceConfig.dataCallback     = data_callback;
     deviceConfig.pUserData        = &encoder;
     deviceConfig.periodSizeInMilliseconds = 50;
@@ -82,7 +85,7 @@ int main(int argc, char** argv)
 
 	// assign IP, PORT
 	servaddr.sin_family = AF_INET;
-	servaddr.sin_addr.s_addr = inet_addr(argv[1]);
+	servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	servaddr.sin_port = htons(PORT);
 
 	// connect the client socket to server socket
@@ -110,9 +113,10 @@ int main(int argc, char** argv)
     //getchar();
     while(1)
     {
-        write(sockfd, bufferI, 2205);
-        read(sockfd, bufferO, 2205);
+        write(sockfd, bufferI, 2205*2);
+        read(sockfd, bufferO, 2205*2);
     }
+    //getchar();
     
     ma_device_uninit(&device);
     ma_encoder_uninit(&encoder);
