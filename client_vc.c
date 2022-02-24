@@ -16,6 +16,10 @@ data received by the microphone straight to a WAV file.
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+//#include <time.h>
+
+
+#include <raylib.h>
 
 #define MAX 80
 #define PORT 8080
@@ -25,25 +29,34 @@ int counter = 0;
 int16_t bufferI[4410];
 int16_t bufferO[4410];
 int newBuffer = 0;
+int16_t timer = 0;
 void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
-    MA_ASSERT(pDevice->capture.format == pDevice->playback.format);
-    MA_ASSERT(pDevice->capture.channels == pDevice->playback.channels);
-
+    // MA_ASSERT(pDevice->capture.format == pDevice->playback.format);
+    // MA_ASSERT(pDevice->capture.channels == pDevice->playback.channels);
+    // if(WindowShouldClose())
+    // {
+    //     exit(0);
+    // }
     /* In this example the format and channel count are the same for both input and output which means we can just memcpy(). */
-    if(newBuffer == 0)
-    {
-        memcpy(bufferI, pInput, 4410*2);
-        memcpy(pOutput, bufferO, 4410*2);
-        newBuffer = 1;
-    }
-
-    //write(sockfd, pInput, 4410*2);
-    //read(sockfd, pOutput, 4410*2);
+    // if(newBuffer == 0)
+    // {
+    //     memcpy(bufferI, pInput, 4410*2);
+    //     memcpy(pOutput, bufferO, 4410*2);
+        
+    // }
+    // newBuffer ++;
+    memcpy(bufferI, pInput, 4410*2);
+    bufferI[0] = timer;
+    write(sockfd, bufferI, 4410*2);
+    read(sockfd, pOutput, 4410*2);
+    timer = ((int16_t*)pOutput)[0];
+    ((int16_t*)pOutput)[0] = ((int16_t*)pOutput)[1];
     
     //MA_COPY_MEMORY(pOutput, pInput, frameCount * ma_get_bytes_per_frame(pDevice->capture.format, pDevice->capture.channels));
     printf("size: %i   counter: %i\n", frameCount, counter++);
 }
+
 
 int main(int argc, char** argv)
 {
@@ -53,26 +66,56 @@ int main(int argc, char** argv)
     ma_device_config deviceConfig;
     ma_device device;
 
-    if (argc < 2) {
-        printf("No output file.\n");
-        return -1;
+    InitWindow(400, 400, "VoiceChat");
+    SetTargetFPS(60);
+    char ip [50] = {'\0'};
+    int ipLength= 0;
+    while(!WindowShouldClose())
+    {
+        BeginDrawing();
+            ClearBackground((Color){.r=0, .b=0, .g=bufferI[50]});
+            int key = GetKeyPressed();
+            while(key)
+            {
+                if(key == 65 || (key >= 46 && key <= 57))
+                    ip[ipLength++] = key;
+                if(key == 259)
+                    ip[ipLength--] = '\0';
+                if(ipLength < 0)
+                    ipLength = 0;
+                if(key == 257)
+                    break;
+                ip[ipLength] = '\0';
+                if(IsKeyDown(341) && key == 86)
+                {
+                    strcat(ip, GetClipboardText());
+                }
+                if(IsKeyDown(341) && key == 259)
+                {
+                    ip[0] = '\0';
+                    ipLength = 0;
+                }
+                printf("%i  %s\n", key, ip);
+                key = GetKeyPressed();
+            }
+            if(key == 257)
+                break;
+            DrawText("ip", 200, 100, 40, WHITE);
+            DrawText(ip, 40, 200, 40, WHITE);
+        EndDrawing();
     }
+    if(WindowShouldClose())
+        exit(0);
 
-    encoderConfig = ma_encoder_config_init(ma_encoding_format_wav, ma_format_s16, 1, 44100);
-
-    if (ma_encoder_init_file("ugh.mp3", &encoderConfig, &encoder) != MA_SUCCESS) {
-        printf("Failed to initialize output file.\n");
-        return -1;
-    }
 
     deviceConfig = ma_device_config_init(ma_device_type_duplex);
-    deviceConfig.capture.format   = encoder.config.format;
-    deviceConfig.playback.format   = encoder.config.format;
-    deviceConfig.capture.channels = encoder.config.channels;
-    deviceConfig.playback.channels = encoder.config.channels;
-    deviceConfig.sampleRate       = encoder.config.sampleRate;
+    deviceConfig.capture.format   = ma_format_s16;
+    deviceConfig.playback.format   = ma_format_s16;
+    deviceConfig.capture.channels = 1;
+    deviceConfig.playback.channels = 1;
+    deviceConfig.sampleRate       = 44100;
     deviceConfig.dataCallback     = data_callback;
-    deviceConfig.pUserData        = &encoder;
+    //deviceConfig.pUserData        = &encoder;
     deviceConfig.periodSizeInMilliseconds = 100;
 
     int connfd;
@@ -90,7 +133,7 @@ int main(int argc, char** argv)
 
 	// assign IP, PORT
 	servaddr.sin_family = AF_INET;
-	servaddr.sin_addr.s_addr = inet_addr(argv[1]);
+	servaddr.sin_addr.s_addr = inet_addr(ip);
 	servaddr.sin_port = htons(PORT);
 
 	// connect the client socket to server socket
@@ -100,6 +143,8 @@ int main(int argc, char** argv)
 	}
 	else
 		printf("connected to the server..\n");
+
+    
 
     result = ma_device_init(NULL, &deviceConfig, &device);
     if (result != MA_SUCCESS) {
@@ -116,14 +161,31 @@ int main(int argc, char** argv)
 
     //printf("Press Enter to stop recording...\n");
     //getchar();
-    while(1)
+    int averageVolume = 0;
+    while(!WindowShouldClose())
     {
-        if(newBuffer !=0)
-        {
-            write(sockfd, bufferI, 4410*2);
-            read(sockfd, bufferO, 4410*2);
-            newBuffer = 0;
-        }
+        // if(newBuffer !=0)
+        // {
+        //     bufferI[0] = time;
+        //     write(sockfd, bufferI, 4410*2);
+        //     read(sockfd, bufferO, 4410*2);
+        //     newBuffer = 0;
+        //     //printf("write!  %i\n", bufferO[0]);
+        //     time = bufferO[0];
+        //     bufferO[0] = 0;
+        // }
+        BeginDrawing();
+            //printf(bufferI[50]);
+            int volume = 0;
+            for(int i = 0; i < 4410; i++)
+            {
+                if(volume < bufferI[i])
+                    volume = bufferI[i];
+            }
+            printf("%u\n", volume);
+            averageVolume = (averageVolume + volume) / 2;
+            ClearBackground((Color){.r=0, .b=0, .g=averageVolume /20});
+        EndDrawing();
     }
     //getchar();
     

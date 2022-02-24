@@ -5,46 +5,105 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <pthread.h>
+#include <time.h>
 #define MAX 4410
+#define MAXCLIENTS 8
 #define PORT 8080
 #define SA struct sockaddr
 
+typedef struct{
+	int online;
+	int16_t buff[MAX];
+	int conn;
+	pthread_t thread;
+	struct sockaddr_in socket;
+}Client;
+Client clients[MAXCLIENTS] = {0};
+int amountClients = 0;
+pthread_mutex_t bufferLock;
+int currentClient = 0;
+int counting = 0;
+clock_t begin;
 // Function designed for chat between client and server.
-void func(int connfd1, int connfd2)
+void func(int client)
 {
-	int16_t buff1[MAX];
-	int16_t buff2[MAX];
+	
 	// infinite loop for chat
 	for (;;) {
-		bzero(buff1, sizeof(buff1));
-		bzero(buff2, sizeof(buff1));
+		if(currentClient == client && amountClients != 1)
+		{
+			usleep(5000);
+			continue;
+		}
+		pthread_mutex_lock(&bufferLock);
+		bzero(clients[client].buff, sizeof(clients[client].buff));
 
 		// read the message from client and copy it in buffer
-		read(connfd1, buff1, sizeof(buff1));
-		read(connfd2, buff2, sizeof(buff2));
+		int16_t inBuff [MAX] = {0};
+		int result = read(clients[client].conn, inBuff, sizeof(inBuff));
+		if(!result)
+		{
+			//close client
+			clients[client].online = 0;
+			printf("client %i left\n", client);
+			pthread_mutex_unlock(&bufferLock);
+			return;
+		}
 		// print buffer which contains the client contents
 		//printf("From client: %s\t To client : ", buff);
 		// copy server message in the buffer
 		// while ((buff[n++] = getchar()) != '\n')
 		// 	;
-
-		// and send that buffer to client
-		write(connfd1, buff2, sizeof(buff2));
-		write(connfd2, buff1, sizeof(buff1));
-
-		// if msg contains "Exit" then server exit and chat ended.
-		if (strncmp("exit", buff1, 4) == 0 || strncmp("exit", buff1, 4) == 0) {
-			printf("Server Exit...\n");
-			break;
+		// and send that buffer to clientf
+		
+		memcpy(clients[client].buff, inBuff, sizeof(inBuff));
+		printf("client new frame: %i ", client);
+		int16_t tmpBuff [MAX] = {0};
+		//printf("  %i  ", buff[client][50]);
+		for(int i = 0; i <= amountClients; i++)
+		{
+			if(i == client)
+				continue;
+			// if(clients[i].socket.sin_addr.s_addr == clients[client].socket.sin_addr.s_addr)
+			// 	continue;
+			if(!clients[i].online)
+				continue;
+			//printf("imma do it, just you watch");
+			for(int j = 0; j < MAX; j++)
+			{
+				tmpBuff[j] += clients[i].buff[j];
+				//printf("%i  ", buff[i][j]);
+			}
+			//printf("  %i  ", buff[i][50]);
+			//printf("\n");
 		}
+		tmpBuff[0] = (clock()/1000) - begin;
+		printf("time: %i timeBack %i delay %i\n", (clock()/1000)-begin, inBuff[0], ((clock()/1000)-begin)-inBuff[0]);
+		result = write(clients[client].conn, tmpBuff, sizeof(tmpBuff));
+		if(!result)
+		{
+			//close client
+			clients[client].online = 0;
+			amountClients--;
+			printf("client %i left\n", client);
+			pthread_mutex_unlock(&bufferLock);
+			return;
+		}
+		// if msg contains "Exit" then server exit and chat ended.
+		currentClient = client;
+		pthread_mutex_unlock(&bufferLock);
+		//usleep(5000);
 	}
+
 }
 
 // Driver function
 int main()
 {
+	
 	int sockfd, connfd1, connfd2, len;
-	struct sockaddr_in servaddr, cli1, cli2;
+	struct sockaddr_in servaddr;
 
 	// socket create and verification
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -76,22 +135,30 @@ int main()
 	}
 	else
 		printf("Server listening..\n");
-	len = sizeof(cli1);
-	len = sizeof(cli2);
+	
+	pthread_mutex_init(&bufferLock, NULL) ;
 
-	// Accept the data packet from client and verification
-	connfd1 = accept(sockfd, (SA*)&cli1, &len);
-	connfd2 = accept(sockfd, (SA*)&cli2, &len);
-	if (connfd1 < 0 || connfd2 < 0) {
-		printf("server accept failed...\n");
-		exit(0);
+	begin = (clock()/1000);
+	while(amountClients < MAX)
+	{
+		len = sizeof(clients[0].socket);
+		int i = 0;
+		for(; i < MAX; i++)
+			if(!clients[i].online)
+				break;
+		// Accept the data packet from client and verification
+		clients[i].conn = accept(sockfd, (SA*)&clients[i].socket, &len);
+		if (clients[i].conn < 0) {
+			printf("server accept failed client: %i \n", i);
+			continue;
+		}
+		else
+			printf("server accept the client %i\n", i);
+		clients[i].online = 1;
+		// Function for chatting between client and server
+		pthread_create(&clients[i].thread, NULL, func, i);
+		amountClients++;
 	}
-	else
-		printf("server accept the clients...\n");
-
-	// Function for chatting between client and server
-	func(connfd1, connfd2);
-
 	// After chatting close the socket
 	close(sockfd);
 }
