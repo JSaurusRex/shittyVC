@@ -15,7 +15,9 @@ data received by the microphone straight to a WAV file.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #include <sys/socket.h>
+#include <time.h>
 //#include <time.h>
 
 
@@ -50,8 +52,7 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
     // newBuffer ++;
     memcpy(bufferI+EXTRABYTES, pInput, MAX*2);
     //bufferI[0] = serverTimer;
-    write(sockfd, bufferI, TOTALSIZE*2);
-    read(sockfd, bufferO, TOTALSIZE*2);
+    
     localTimer++;
     
     // serverTimer = ((int16_t*)bufferO)[0];
@@ -67,6 +68,16 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
     
     //MA_COPY_MEMORY(pOutput, pInput, frameCount * ma_get_bytes_per_frame(pDevice->capture.format, pDevice->capture.channels));
     //printf("size: %i   counter: %i\n", frameCount, counter++);
+}
+
+void sendServer ()
+{
+    while(true)
+    {
+        write(sockfd, bufferI, TOTALSIZE*2);
+        read(sockfd, bufferO, TOTALSIZE*2);
+        usleep(5000);
+    }
 }
 
 
@@ -170,6 +181,9 @@ int main(int argc, char** argv)
         printf("Failed to start device.\n");
         return -3;
     }
+
+    pthread_t sendThread;
+    pthread_create(sendThread, NULL, sendServer, NULL);
 
     //printf("Press Enter to stop recording...\n");
     //getchar();

@@ -69,10 +69,10 @@ void func(int client)
 		//printf("  %i  ", buff[client][50]);
 		for(int i = 0; i <= amountClients; i++)
 		{
-			if(i == client)
-				continue;
-			if(clients[i].socket.sin_addr.s_addr == clients[client].socket.sin_addr.s_addr)
-				continue;
+			// if(i == client)
+			// 	continue;
+			// if(clients[i].socket.sin_addr.s_addr == clients[client].socket.sin_addr.s_addr)
+			// 	continue;
 			if(!clients[i].online)
 				continue;
 			//printf("imma do it, just you watch");
