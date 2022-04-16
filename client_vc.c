@@ -63,7 +63,7 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
     //     localTimer++;
     //     serverTimer = ((int16_t*)bufferO)[0];
     // }
-    memcpy(pOutput, bufferI+EXTRABYTES, MAX*2);
+    memcpy(pOutput, bufferO+EXTRABYTES, MAX*2);
     
     //MA_COPY_MEMORY(pOutput, pInput, frameCount * ma_get_bytes_per_frame(pDevice->capture.format, pDevice->capture.channels));
     //printf("size: %i   counter: %i\n", frameCount, counter++);

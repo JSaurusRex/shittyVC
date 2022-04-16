@@ -64,7 +64,7 @@ void func(int client)
 		// and send that buffer to clientf
 		
 		memcpy(clients[client].buff, inBuff, sizeof(inBuff));
-		printf("client new frame: %i ", client);
+		//printf("client new frame: %i ", client);
 		int16_t tmpBuff [TOTALBYTES] = {0};
 		//printf("  %i  ", buff[client][50]);
 		for(int i = 0; i <= amountClients; i++)
