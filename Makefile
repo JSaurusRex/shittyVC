@@ -1,6 +1,7 @@
 
+
 windows_client:
-	x86_64-w64-mingw32-gcc winclient_vc.c -L./ -static -static-libgcc  -lm -lpthread -lws2_32 -o client_vc.exe -lglfw3 -lopengl32 -lgdi32 -l:libraylibdll.a 
+	x86_64-w64-mingw32-gcc winclient_vc.c -L./ -static -static-libgcc  -lm -lpthread -lws2_32 -o client_vc.exe -lglfw3 libraylib.a -std=c99 -Wl,-allow-multiple-definition -Wl,--subsystem,windows -Wl,-Bdynamic -lopengl32 -lgdi32 -Wl,-Bstatic -lwinmm
 #x86_64-w64-mingw32-gcc winclient_vcPlayback.c -lm -lpthread -lws2_32 -o client_vcPlayback.exe -static -static-libgcc
 
 windows_server:

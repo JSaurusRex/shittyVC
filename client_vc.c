@@ -21,15 +21,17 @@ data received by the microphone straight to a WAV file.
 
 #include <raylib.h>
 
-#define MAX 80
+#define MAX 4410
+#define EXTRABYTES 0
+#define TOTALSIZE (MAX +EXTRABYTES)
 #define PORT 8080
 #define SA struct sockaddr
 int sockfd = 0;
 int counter = 0;
-int16_t bufferI[4410];
-int16_t bufferO[4410];
+int16_t bufferI[TOTALSIZE];
+int16_t bufferO[TOTALSIZE];
 int newBuffer = 0;
-int16_t timer = 0;
+int serverTimer = 0, localTimer = 0;
 void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
     // MA_ASSERT(pDevice->capture.format == pDevice->playback.format);
@@ -41,20 +43,30 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
     /* In this example the format and channel count are the same for both input and output which means we can just memcpy(). */
     // if(newBuffer == 0)
     // {
-    //     memcpy(bufferI, pInput, 4410*2);
-    //     memcpy(pOutput, bufferO, 4410*2);
+    //     memcpy(bufferI, pInput, MAX*2);
+    //     memcpy(pOutput, bufferO, MAX*2);
         
     // }
     // newBuffer ++;
-    memcpy(bufferI, pInput, 4410*2);
-    bufferI[0] = timer;
-    write(sockfd, bufferI, 4410*2);
-    read(sockfd, pOutput, 4410*2);
-    timer = ((int16_t*)pOutput)[0];
-    ((int16_t*)pOutput)[0] = ((int16_t*)pOutput)[1];
+    memcpy(bufferI+EXTRABYTES, pInput, MAX*2);
+    //bufferI[0] = serverTimer;
+    write(sockfd, bufferI, TOTALSIZE*2);
+    read(sockfd, bufferO, TOTALSIZE*2);
+    localTimer++;
+    
+    // serverTimer = ((int16_t*)bufferO)[0];
+    // printf("latency %i\n", bufferO[1]);
+    // while(serverTimer - localTimer > 2)
+    // {
+    //     printf("battling tcp traffic jam\n");
+    //     read(sockfd, bufferO, TOTALSIZE*2);
+    //     localTimer++;
+    //     serverTimer = ((int16_t*)bufferO)[0];
+    // }
+    memcpy(pOutput, bufferI+EXTRABYTES, MAX*2);
     
     //MA_COPY_MEMORY(pOutput, pInput, frameCount * ma_get_bytes_per_frame(pDevice->capture.format, pDevice->capture.channels));
-    printf("size: %i   counter: %i\n", frameCount, counter++);
+    //printf("size: %i   counter: %i\n", frameCount, counter++);
 }
 
 
@@ -167,8 +179,8 @@ int main(int argc, char** argv)
         // if(newBuffer !=0)
         // {
         //     bufferI[0] = time;
-        //     write(sockfd, bufferI, 4410*2);
-        //     read(sockfd, bufferO, 4410*2);
+        //     write(sockfd, bufferI, MAX*2);
+        //     read(sockfd, bufferO, MAX*2);
         //     newBuffer = 0;
         //     //printf("write!  %i\n", bufferO[0]);
         //     time = bufferO[0];
@@ -177,12 +189,12 @@ int main(int argc, char** argv)
         BeginDrawing();
             //printf(bufferI[50]);
             int volume = 0;
-            for(int i = 0; i < 4410; i++)
+            for(int i = 0; i < MAX; i++)
             {
                 if(volume < bufferI[i])
                     volume = bufferI[i];
             }
-            printf("%u\n", volume);
+            //printf("%u\n", volume);
             averageVolume = (averageVolume + volume) / 2;
             ClearBackground((Color){.r=0, .b=0, .g=averageVolume /20});
         EndDrawing();

@@ -1,10 +1,10 @@
 
-
+#include "raylib.h"
 
 #include<stdio.h>
 #include<winsock2.h>
 
-#include "raylib.h"
+
 
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
@@ -14,11 +14,14 @@
 
 int sockfd = 0;
 int counter = 0;
-INT16 bufferI[4410];
-INT16 bufferO[4410];
+#define BUFFSIZE 4410
+#define EXTRABYTES 0
+#define TOTALSIZE (BUFFSIZE +EXTRABYTES)
+INT16 bufferI[BUFFSIZE+EXTRABYTES];
+INT16 bufferO[BUFFSIZE+EXTRABYTES];
 int newBuffer = 0;
 #define PORT 8080
-int timer = 0;
+int serverTimer = 0, latency=0, localTimer = 0;
 
 SOCKET s;
 
@@ -30,22 +33,34 @@ void data_callbackC(ma_device* pDevice, void* pOutput, const void* pInput, ma_ui
     /* In this example the format and channel count are the same for both input and output which means we can just memcpy(). */
     // if(newBuffer < 2)
     // {
-    memcpy(bufferI, pInput, 4410*2);
-    //memcpy(pOutput, bufferO, 4410*2);
+    memcpy(bufferI+EXTRABYTES, pInput, BUFFSIZE*2);
+    //memcpy(pOutput, bufferO, BUFFSIZE*2);
     //newBuffer++;
-    bufferI[0] = timer;
-    send(s, bufferI, 4410*2, 0);
-    recv(s, bufferO, 4410*2, 0);
-    timer = ((INT16*)pOutput)[0];
-    ((INT16*)pOutput)[0] = ((INT16*)pOutput)[1];
+    // bufferI[0] = serverTimer;
+    send(s, bufferI, TOTALSIZE*2, 0);
+    int result = 1;
+    result = recv(s, bufferO, TOTALSIZE*2, 0);
+    // serverTimer = ((INT16*)bufferO)[0];
+    // latency = ((INT16*)bufferO)[1];
+    localTimer++;
+    printf("latency %i\n", latency);
+    // while(serverTimer - localTimer > 2)
+    // {
+    //     printf("battling tcp traffic jam\n");
+    //     result = recv(s, bufferO, TOTALSIZE*2, 0);
+    //     serverTimer = ((INT16*)bufferO)[0];
+    //     latency = ((INT16*)bufferO)[1];
+    //     localTimer++;
+    // }
+    
     // }else
         //printf("missed buffer\n");
 
-    //write(sockfd, pInput, 4410*2);
-    //read(sockfd, pOutput, 4410*2);
+    //write(sockfd, pInput, BUFFSIZE*2);
+    //read(sockfd, pOutput, BUFFSIZE*2);
     
     //MA_COPY_MEMORY(pOutput, pInput, frameCount * ma_get_bytes_per_frame(pDevice->capture.format, pDevice->capture.channels));
-    printf("size: %i   counter: %i\n", frameCount, counter++);
+    //printf("size: %i   counter: %i\n", frameCount, counter++);
 }
 
 void data_callbackP(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
@@ -56,24 +71,38 @@ void data_callbackP(ma_device* pDevice, void* pOutput, const void* pInput, ma_ui
     /* In this example the format and channel count are the same for both input and output which means we can just memcpy(). */
     // if(newBuffer < 2)
     // {
-        //memcpy(bufferI, pInput, 4410*2);
-        //memcpy(pOutput, bufferO, 4410*2);
-    memcpy(bufferI, pInput, 4410*2);
-    //memcpy(pOutput, bufferO, 4410*2);
+        //memcpy(bufferI, pInput, BUFFSIZE*2);
+        //memcpy(pOutput, bufferO, BUFFSIZE*2);
+    // memcpy(bufferI, pInput, BUFFSIZE*2);
+    //memcpy(pOutput, bufferO, BUFFSIZE*2);
     //newBuffer++;
-    bufferI[0] = timer;
-    send(s, bufferI, 4410*2, 0);
-    recv(s, bufferO, 4410*2, 0);
-    timer = ((INT16*)pOutput)[0];
-    ((INT16*)pOutput)[0] = ((INT16*)pOutput)[1];
+    // bufferI[0] = serverTimer;
+    send(s, bufferI, TOTALSIZE*2, 0);
+    recv(s, bufferO, TOTALSIZE*2, 0);
+    // serverTimer = ((INT16*)bufferO)[0];
+    // latency = ((INT16*)bufferO)[1];
+    localTimer++;
+    printf("latency %i\n", latency);
+    // while(serverTimer - localTimer > 2)
+    // {
+    //     printf("battling tcp traffic jam\n");
+    //     recv(s, bufferO, TOTALSIZE*2, 0);
+    //     serverTimer = ((INT16*)bufferO)[0];
+    //     latency = ((INT16*)bufferO)[1];
+    //     localTimer++;
+    // }
+
+    memcpy(pOutput, bufferO+EXTRABYTES, BUFFSIZE*2);
+    
+    // ((INT16*)pOutput)[0] = ((INT16*)pOutput)[1];
     // }else
         //printf("missed buffer\n");
 
-    //write(sockfd, pInput, 4410*2);
-    //read(sockfd, pOutput, 4410*2);
+    //write(sockfd, pInput, BUFFSIZE*2);
+    //read(sockfd, pOutput, BUFFSIZE*2);
     
     //MA_COPY_MEMORY(pOutput, pInput, frameCount * ma_get_bytes_per_frame(pDevice->capture.format, pDevice->capture.channels));
-    printf("size: %i   counter: %i\n", frameCount, counter++);
+    //printf("size: %i   counter: %i\n", frameCount, counter++);
 }
 
 int main(int argc , char *argv[])
@@ -174,24 +203,22 @@ int main(int argc , char *argv[])
                     break;
                 //DrawText("ip", 200, 100, 40, WHITE);
                 //DrawText(ip, 40, 200, 40, WHITE);
-                DrawTextPro(GetFontDefault(), ip, (Vector2){.x=40, .y=200}, (Vector2){.x=0, .y=0}, 0, 40, 0.4, WHITE);  
+                SetWindowTitle(ip);
+                //DrawTextPro(GetFontDefault(), "test\0", (Vector2){.x=40, .y=200}, (Vector2){.x=0, .y=0}, 0, 40, 0.4, WHITE);  
             EndDrawing();
         }
-
         if(WindowShouldClose())
             exit(0);
 
         server.sin_addr.s_addr = inet_addr(ip);
         server.sin_family = AF_INET;
         server.sin_port = htons( PORT );
-
         //Connect to remote server
         if (connect(s , (struct sockaddr *)&server , sizeof(server)) < 0)
         {
             puts("connect error");
             return 1;
         }
-        
         puts("Connected");
         
 
@@ -206,32 +233,69 @@ int main(int argc , char *argv[])
             printf("Failed to start device.\n");
             return -3;
         }
+        printf("MADE IT!\n");
         int averageVolume = 0;
+
+        STARTUPINFO si;
+        PROCESS_INFORMATION pi;
+
+        ZeroMemory( &si, sizeof(si) );
+        si.cb = sizeof(si);
+        ZeroMemory( &pi, sizeof(pi) );
+        char str [50] = "client_vc.exe ";
+        strcat(str, ip);
+        printf("%s\n", str);
+        if( !CreateProcess( NULL,   // No module name (use command line)
+        str,        // Command line
+        NULL,           // Process handle not inheritable
+        NULL,           // Thread handle not inheritable
+        1,          // Set handle inheritance to FALSE
+        0,              // No creation flags
+        NULL,           // Use parent's environment block
+        NULL,           // Use parent's starting directory 
+        &si,            // Pointer to STARTUPINFO structure
+        &pi )           // Pointer to PROCESS_INFORMATION structure
+        )
+            exit(0);
+        // while(!WindowShouldClose())
+        // {
+        //     // if(newBuffer !=0)
+        //     // {
+        //     //     bufferI[0] = time;
+        //     //     write(sockfd, bufferI, 4410*2);
+        //     //     read(sockfd, bufferO, 4410*2);
+        //     //     newBuffer = 0;
+        //     //     //printf("write!  %i\n", bufferO[0]);
+        //     //     time = bufferO[0];
+        //     //     bufferO[0] = 0;
+        //     // }
+        //     BeginDrawing();
+        //         //printf(bufferI[50]);
+        //         int volume = 0;
+        //         for(int i = 0; i < 4410; i++)
+        //         {
+        //             if(volume < bufferI[i])
+        //                 volume = bufferI[i];
+        //         }
+        //         printf("%u\n", volume);
+        //         averageVolume = (averageVolume + volume) / 2;
+        //         //ClearBackground((Color){.r=0, .b=0, .g=averageVolume /20});
+        //     EndDrawing();
+        // }
         while(!WindowShouldClose())
         {
-            // if(newBuffer !=0)
-            // {
-            //     bufferI[0] = time;
-            //     write(sockfd, bufferI, 4410*2);
-            //     read(sockfd, bufferO, 4410*2);
-            //     newBuffer = 0;
-            //     //printf("write!  %i\n", bufferO[0]);
-            //     time = bufferO[0];
-            //     bufferO[0] = 0;
-            // }
+            //printf("window should close :thinking:?\n");
             BeginDrawing();
-                //printf(bufferI[50]);
-                int volume = 0;
-                for(int i = 0; i < 4410; i++)
-                {
-                    if(volume < bufferI[i])
-                        volume = bufferI[i];
-                }
-                printf("%u\n", volume);
-                averageVolume = (averageVolume + volume) / 2;
-                ClearBackground((Color){.r=0, .b=0, .g=averageVolume /20});
+                char ping [3] = {'0'+latency%10, '0'+latency/10, '\0'};
+                SetWindowTitle(ping);
             EndDrawing();
+            Sleep(50);
         }
+        printf("\nclose!!\n");
+        printf("%i\n", TerminateProcess(pi.hProcess, 0));
+        CloseHandle( pi.hProcess );
+        CloseHandle( pi.hThread );
+
     }else{
 
         ma_device_config deviceConfigP;
@@ -272,7 +336,7 @@ int main(int argc , char *argv[])
         }
         while(1)
         {
-            Sleep(500000);
+            Sleep(500);
         }
     }
 

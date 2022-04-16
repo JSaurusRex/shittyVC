@@ -7,14 +7,18 @@
 #include <sys/types.h>
 #include <pthread.h>
 #include <time.h>
-#define MAX 4410
+#define MAX 4410 //2 extra bytes send for server time, (client/server) latency
+#define EXTRABYTES 0
+#define TOTALBYTES (EXTRABYTES+MAX)
+//server latency means the client has to read the tcp traffic jam
+
 #define MAXCLIENTS 8
 #define PORT 8080
 #define SA struct sockaddr
 
 typedef struct{
 	int online;
-	int16_t buff[MAX];
+	int16_t buff[TOTALBYTES];
 	int conn;
 	pthread_t thread;
 	struct sockaddr_in socket;
@@ -28,7 +32,8 @@ clock_t begin;
 // Function designed for chat between client and server.
 void func(int client)
 {
-	
+	int counter = 0;
+	int delay = 0;
 	// infinite loop for chat
 	for (;;) {
 		if(currentClient == client && amountClients != 1)
@@ -46,6 +51,7 @@ void func(int client)
 		{
 			//close client
 			clients[client].online = 0;
+			amountClients--;
 			printf("client %i left\n", client);
 			pthread_mutex_unlock(&bufferLock);
 			return;
@@ -59,18 +65,18 @@ void func(int client)
 		
 		memcpy(clients[client].buff, inBuff, sizeof(inBuff));
 		printf("client new frame: %i ", client);
-		int16_t tmpBuff [MAX] = {0};
+		int16_t tmpBuff [TOTALBYTES] = {0};
 		//printf("  %i  ", buff[client][50]);
 		for(int i = 0; i <= amountClients; i++)
 		{
 			if(i == client)
 				continue;
-			// if(clients[i].socket.sin_addr.s_addr == clients[client].socket.sin_addr.s_addr)
-			// 	continue;
+			if(clients[i].socket.sin_addr.s_addr == clients[client].socket.sin_addr.s_addr)
+				continue;
 			if(!clients[i].online)
 				continue;
 			//printf("imma do it, just you watch");
-			for(int j = 0; j < MAX; j++)
+			for(int j = 0; j < TOTALBYTES; j++)
 			{
 				tmpBuff[j] += clients[i].buff[j];
 				//printf("%i  ", buff[i][j]);
@@ -78,8 +84,8 @@ void func(int client)
 			//printf("  %i  ", buff[i][50]);
 			//printf("\n");
 		}
-		tmpBuff[0] = (clock()/1000) - begin;
-		printf("time: %i timeBack %i delay %i\n", (clock()/1000)-begin, inBuff[0], ((clock()/1000)-begin)-inBuff[0]);
+		// tmpBuff[0] = counter++; 
+		// printf("time: %i timeBack %i delay %i\n", counter, inBuff[0], counter-inBuff[0]);
 		result = write(clients[client].conn, tmpBuff, sizeof(tmpBuff));
 		if(!result)
 		{
