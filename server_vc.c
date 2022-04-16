@@ -29,18 +29,21 @@ pthread_mutex_t bufferLock;
 int currentClient = 0;
 int counting = 0;
 clock_t begin;
+
 // Function designed for chat between client and server.
-void func(int client)
+void func()
 {
 	int counter = 0;
 	int delay = 0;
 	// infinite loop for chat
-	for (;;) {
-		if(currentClient == client && amountClients != 1)
+	while(1)
+	for (int client = 0; client < MAXCLIENTS; client++) {
+		if(!clients[client].online)
 		{
-			usleep(5000);
+			//printf(">:(!\n");
 			continue;
 		}
+		//printf("ola!\n");
 		pthread_mutex_lock(&bufferLock);
 		bzero(clients[client].buff, sizeof(clients[client].buff));
 
@@ -54,7 +57,8 @@ void func(int client)
 			amountClients--;
 			printf("client %i left\n", client);
 			pthread_mutex_unlock(&bufferLock);
-			return;
+			// return;
+			continue;
 		}
 		// print buffer which contains the client contents
 		//printf("From client: %s\t To client : ", buff);
@@ -94,7 +98,8 @@ void func(int client)
 			amountClients--;
 			printf("client %i left\n", client);
 			pthread_mutex_unlock(&bufferLock);
-			return;
+			// return;
+			continue;
 		}
 		// if msg contains "Exit" then server exit and chat ended.
 		currentClient = client;
@@ -145,6 +150,8 @@ int main()
 	pthread_mutex_init(&bufferLock, NULL) ;
 
 	begin = (clock()/1000);
+	pthread_t thread;
+	pthread_create(&thread, NULL, func, NULL);
 	while(amountClients < MAX)
 	{
 		len = sizeof(clients[0].socket);
@@ -162,7 +169,7 @@ int main()
 			printf("server accept the client %i\n", i);
 		clients[i].online = 1;
 		// Function for chatting between client and server
-		pthread_create(&clients[i].thread, NULL, func, i);
+		
 		amountClients++;
 	}
 	// After chatting close the socket
