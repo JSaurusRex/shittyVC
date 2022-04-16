@@ -44,7 +44,7 @@ void func()
 			continue;
 		}
 		//printf("ola!\n");
-		pthread_mutex_lock(&bufferLock);
+		//pthread_mutex_lock(&bufferLock);
 		bzero(clients[client].buff, sizeof(clients[client].buff));
 
 		// read the message from client and copy it in buffer
@@ -56,7 +56,7 @@ void func()
 			clients[client].online = 0;
 			amountClients--;
 			printf("client %i left\n", client);
-			pthread_mutex_unlock(&bufferLock);
+			// pthread_mutex_unlock(&bufferLock);
 			// return;
 			continue;
 		}
@@ -97,13 +97,13 @@ void func()
 			clients[client].online = 0;
 			amountClients--;
 			printf("client %i left\n", client);
-			pthread_mutex_unlock(&bufferLock);
+			// pthread_mutex_unlock(&bufferLock);
 			// return;
 			continue;
 		}
 		// if msg contains "Exit" then server exit and chat ended.
 		currentClient = client;
-		pthread_mutex_unlock(&bufferLock);
+		//pthread_mutex_unlock(&bufferLock);
 		//usleep(5000);
 	}
 
@@ -152,7 +152,7 @@ int main()
 	begin = (clock()/1000);
 	pthread_t thread;
 	pthread_create(&thread, NULL, func, NULL);
-	while(amountClients < MAX)
+	while(1)
 	{
 		len = sizeof(clients[0].socket);
 		int i = 0;
