@@ -77,11 +77,11 @@ void sendServer ()
 {
     while(true)
     {
-        pthread_mutex_lock(&bufferLock);
+        //pthread_mutex_lock(&bufferLock);
         write(sockfd, bufferI, TOTALSIZE*2);
         read(sockfd, bufferO, TOTALSIZE*2);
-        usleep(5000);
-        pthread_mutex_unlock(&bufferLock);
+        //usleep(5000);
+        //pthread_mutex_unlock(&bufferLock);
     }
 }
 
