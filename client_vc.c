@@ -54,7 +54,7 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
         
     // }
     // newBuffer ++;
-    // pthread_mutex_lock(&bufferLock);
+    pthread_mutex_lock(&bufferLock);
     memcpy(bufferI+EXTRABYTES, pInput, MAX*2);
     //bufferI[0] = serverTimer;
     
@@ -75,7 +75,7 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
     //     serverTimer = ((int16_t*)bufferO)[0];
     // }
     memcpy(pOutput, bufferO+EXTRABYTES, MAX*2);
-    // pthread_mutex_unlock(&bufferLock);
+    pthread_mutex_unlock(&bufferLock);
     
     //MA_COPY_MEMORY(pOutput, pInput, frameCount * ma_get_bytes_per_frame(pDevice->capture.format, pDevice->capture.channels));
     //printf("size: %i   counter: %i\n", frameCount, counter++);
@@ -83,14 +83,22 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
 
 void sendServer ()
 {
+    int16_t inbetweenBufferI[TOTALSIZE];
+    int16_t inbetweenBufferO[TOTALSIZE];
     while(true)
     {
-        //pthread_mutex_lock(&bufferLock);
-        write(sockfd, bufferI, TOTALSIZE*2);
-        read(sockfd, bufferO, TOTALSIZE*2);
+        pthread_mutex_lock(&bufferLock);
+        for(int i = 0; i < TOTALSIZE; i++)
+        {
+            bufferO[i] = inbetweenBufferO[i];
+            inbetweenBufferI[i] = bufferI[i];
+        }
+        pthread_mutex_unlock(&bufferLock);
+
+        write(sockfd, inbetweenBufferI, TOTALSIZE*2);
+        read(sockfd, inbetweenBufferO, TOTALSIZE*2);
         counterbuff++;
-        //usleep(5000);
-        //pthread_mutex_unlock(&bufferLock);
+        usleep(20000);
     }
 }
 
