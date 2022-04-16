@@ -24,7 +24,7 @@ data received by the microphone straight to a WAV file.
 #include <raylib.h>
 
 #define MAX 4410
-#define EXTRABYTES 0
+#define EXTRABYTES 1
 #define TOTALSIZE (MAX +EXTRABYTES)
 #define PORT 8080
 #define SA struct sockaddr
@@ -97,6 +97,7 @@ void sendServer ()
             // inbetweenBufferI[i] = bufferI[i];
             inbetweenBufferI[i] = (sin(i*0.5)+1)*50;
         }
+        printf("time %i\n", bufferO[0]);
         // pthread_mutex_unlock(&bufferLock);
         //printf("found %i differences\n", differences);
 
