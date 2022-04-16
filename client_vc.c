@@ -88,12 +88,16 @@ void sendServer ()
     while(true)
     {
         pthread_mutex_lock(&bufferLock);
+        int differences = 0;
         for(int i = 0; i < TOTALSIZE; i++)
         {
+            if(bufferO[i] == inbetweenBufferO[i])
+                differences++;
             bufferO[i] = inbetweenBufferO[i];
             inbetweenBufferI[i] = bufferI[i];
         }
         pthread_mutex_unlock(&bufferLock);
+        printf("found %i differences\n", differences);
 
         write(sockfd, inbetweenBufferI, TOTALSIZE*2);
         read(sockfd, inbetweenBufferO, TOTALSIZE*2);
