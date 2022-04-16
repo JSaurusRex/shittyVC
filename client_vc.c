@@ -94,13 +94,18 @@ void sendServer ()
             if(bufferO[i] == inbetweenBufferO[i])
                 differences++;
             bufferO[i] = inbetweenBufferO[i];
-            inbetweenBufferI[i] = bufferI[i];
+            // inbetweenBufferI[i] = bufferI[i];
+            inbetweenBufferI[i] = (sin(i*0.5)+1)*50;
         }
         // pthread_mutex_unlock(&bufferLock);
-        printf("found %i differences\n", differences);
+        //printf("found %i differences\n", differences);
 
         write(sockfd, inbetweenBufferI, TOTALSIZE*2);
-        read(sockfd, inbetweenBufferO, TOTALSIZE*2);
+        int result = read(sockfd, inbetweenBufferO, TOTALSIZE*2);
+        if(!result)
+        {
+            printf("oof\n");
+        }
         counterbuff++;
         //usleep(80000);
     }
