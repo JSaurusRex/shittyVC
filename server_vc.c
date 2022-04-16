@@ -82,7 +82,7 @@ void func()
 				if(!clients[i].online)
 					continue;
 				//printf("imma do it, just you watch");
-				for(int j = EXTRABYTES; j < MAX; j++)
+				for(int j = EXTRABYTES; j < TOTALBYTES; j++)
 				{
 					tmpBuff[j] += clients[i].buff[j];
 					//printf("%i  ", buff[i][j]);

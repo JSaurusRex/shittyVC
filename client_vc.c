@@ -55,7 +55,7 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
     // }
     // newBuffer ++;
     // pthread_mutex_lock(&bufferLock);
-    memcpy(bufferI+EXTRABYTES, pInput, MAX*2);
+    memcpy(bufferI+EXTRABYTES*2, pInput, MAX*2);
     //bufferI[0] = serverTimer;
     
     localTimer++;
@@ -74,7 +74,7 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
     //     localTimer++;
     //     serverTimer = ((int16_t*)bufferO)[0];
     // }
-    memcpy(pOutput, bufferO+EXTRABYTES, MAX*2);
+    memcpy(pOutput, bufferO+EXTRABYTES*2, MAX*2);
     // pthread_mutex_unlock(&bufferLock);
     
     //MA_COPY_MEMORY(pOutput, pInput, frameCount * ma_get_bytes_per_frame(pDevice->capture.format, pDevice->capture.channels));
