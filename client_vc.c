@@ -98,7 +98,7 @@ void sendServer ()
         write(sockfd, inbetweenBufferI, TOTALSIZE*2);
         read(sockfd, inbetweenBufferO, TOTALSIZE*2);
         counterbuff++;
-        usleep(20000);
+        //usleep(80000);
     }
 }
 
