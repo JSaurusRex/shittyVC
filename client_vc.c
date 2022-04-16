@@ -32,6 +32,7 @@ int sockfd = 0;
 int counter = 0;
 int16_t bufferI[TOTALSIZE];
 int16_t bufferO[TOTALSIZE];
+pthread_mutex_t bufferLock;
 int newBuffer = 0;
 int serverTimer = 0, localTimer = 0;
 void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
@@ -50,6 +51,7 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
         
     // }
     // newBuffer ++;
+    pthread_mutex_lock(&bufferLock);
     memcpy(bufferI+EXTRABYTES, pInput, MAX*2);
     //bufferI[0] = serverTimer;
     
@@ -65,6 +67,7 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
     //     serverTimer = ((int16_t*)bufferO)[0];
     // }
     memcpy(pOutput, bufferO+EXTRABYTES, MAX*2);
+    pthread_mutex_unlock(&bufferLock);
     
     //MA_COPY_MEMORY(pOutput, pInput, frameCount * ma_get_bytes_per_frame(pDevice->capture.format, pDevice->capture.channels));
     //printf("size: %i   counter: %i\n", frameCount, counter++);
@@ -74,9 +77,11 @@ void sendServer ()
 {
     while(true)
     {
+        pthread_mutex_lock(&bufferLock);
         write(sockfd, bufferI, TOTALSIZE*2);
         read(sockfd, bufferO, TOTALSIZE*2);
         usleep(5000);
+        pthread_mutex_unlock(&bufferLock);
     }
 }
 
@@ -93,6 +98,7 @@ int main(int argc, char** argv)
     SetTargetFPS(60);
     char ip [50] = {'\0'};
     int ipLength= 0;
+    pthread_mutex_init(&bufferLock, NULL) ;
     while(!WindowShouldClose())
     {
         BeginDrawing();
@@ -183,7 +189,7 @@ int main(int argc, char** argv)
     }
 
     pthread_t sendThread;
-    pthread_create(sendThread, NULL, sendServer, NULL);
+    pthread_create(&sendThread, NULL, sendServer, NULL);
 
     //printf("Press Enter to stop recording...\n");
     //getchar();

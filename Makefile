@@ -11,4 +11,4 @@ linux_server:
 	gcc server_vc.c -lpthread -o server_vc
 
 linux_client:
-	gcc client_vc.c -ldl -lm -lpthread -o client_vc `pkg-config --libs --cflags gtk+-3.0` -lraylib -lGL
+	gcc client_vc.c -ldl -lm -lpthread -o client_vc `pkg-config --libs --cflags gtk+-3.0` -lraylib -lGL -g
