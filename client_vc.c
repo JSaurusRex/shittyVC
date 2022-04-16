@@ -35,6 +35,9 @@ int16_t bufferO[TOTALSIZE];
 pthread_mutex_t bufferLock;
 int newBuffer = 0;
 int serverTimer = 0, localTimer = 0;
+
+int counterbuff = 0;
+int lastCounter = 0;
 void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
     // MA_ASSERT(pDevice->capture.format == pDevice->playback.format);
@@ -56,6 +59,11 @@ void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uin
     //bufferI[0] = serverTimer;
     
     localTimer++;
+    if(lastCounter == counterbuff)
+    {
+        printf("missed buffer\n");
+    }
+    lastCounter = counterbuff;
     
     // serverTimer = ((int16_t*)bufferO)[0];
     // printf("latency %i\n", bufferO[1]);
@@ -80,6 +88,7 @@ void sendServer ()
         //pthread_mutex_lock(&bufferLock);
         write(sockfd, bufferI, TOTALSIZE*2);
         read(sockfd, bufferO, TOTALSIZE*2);
+        counterbuff++;
         //usleep(5000);
         //pthread_mutex_unlock(&bufferLock);
     }
